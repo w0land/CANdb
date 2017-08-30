@@ -12,7 +12,8 @@ endif()
 include_directories(${CMAKE_SOURCE_DIR}/3rdParty/spdlog/include)
 include_directories(${CMAKE_SOURCE_DIR}/src)
 
-find_package(Threads)
+find_package(Threads REQUIRED)
+find_package(GTest)
 
 if(WITH_COVERAGE)
     set(CMAKE_CXX_FLAGS "-g -O0 -Wwrite-strings -fprofile-arcs -ftest-coverage")
@@ -22,7 +23,7 @@ endif()
 
 add_subdirectory(src)
 
-if(WITH_TESTS OR WITH_COVERAGE)
+if((WITH_TESTS OR WITH_COVERAGE) AND GTEST_FOUND)
     enable_testing()
     add_subdirectory(tests)
 endif()
