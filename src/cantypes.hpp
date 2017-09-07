@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+
 enum class CANsignalType { Int, Float, String };
 
 struct CANsignal {
@@ -20,11 +21,23 @@ struct CANmessage {
     std::string name;
 };
 
+namespace std {
+template<> struct less<CANmessage>
+{
+    bool operator() (const CANmessage& lhs, const CANmessage& rhs) const
+    {
+        return lhs.id < rhs.id;
+    }
+
+};
+} // namespace std
+
 struct CANdb_t {
     std::map<CANmessage, std::vector<CANsignal> > messages;
     std::string version;
     std::vector<std::string> nodes;
     std::vector<std::string> symbols;
 };
+
 
 #endif /* end of include guard: CANTYPES_HPP_ML9DFK7A */

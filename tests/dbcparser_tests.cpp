@@ -7,7 +7,7 @@
 std::shared_ptr<spdlog::logger> kDefaultLogger =
     []() -> std::shared_ptr<spdlog::logger> {
     auto z = std::getenv("CDB_LEVEL");
-    auto logger = spdlog::stderr_color_mt("cdb");
+    auto logger = spdlog::stdout_color_mt("cdb");
 
     if (z == nullptr) {
         logger->set_level(spdlog::level::err);
@@ -51,9 +51,7 @@ TEST_F(DBCParserTests, correct_version_number) {
 
 TEST_F(DBCParserTests, one_symbol) {
     const std::string dbc =
-        R"(
-VERSION ""
-NS_ :
+        R"(NS_ :
   NS_DESC
 
 )";
@@ -64,8 +62,7 @@ NS_ :
 
 TEST_F(DBCParserTests, two_symbols) {
     const std::string dbc =
-        R"(
-VERSION ""
+        R"(VERSION ""
 NS_ :
   NS_DESC
   NS_DESC2
@@ -73,5 +70,6 @@ NS_ :
 )";
 
     ASSERT_TRUE(parser.parse(dbc));
-    EXPECT_EQ(parser.getDb().symbols, std::vector<std::string>{{"NS_DESC"}});
+    const std::vector<std::string> expected {{"NS_DESC"}, {"NS_DESC2"}};
+    EXPECT_EQ(parser.getDb().symbols, expected);
 }

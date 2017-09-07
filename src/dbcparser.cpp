@@ -23,10 +23,10 @@ bool DBCParser::parse(const std::string& data) noexcept {
     peg::parser parser;
 
     parser.log = [](size_t l, size_t k, const std::string& s) {
-        cdb_trace("Parser log {}:{} {}", l, k, s);
+        cdb_error("Parser log {}:{} {}", l, k, s);
     };
 
-    if (!parser.load_grammar(dbc.data())) {
+    if (!parser.load_grammar(dbc.data(), dbc.size())) {
         cdb_error("Unable to parse grammar");
         return false;
     }
@@ -34,7 +34,7 @@ bool DBCParser::parse(const std::string& data) noexcept {
     parser.enable_trace(
         [](const char* a, const char* k, long unsigned int,
            const peg::SemanticValues&, const peg::Context&,
-           const peg::any&) { cdb_trace(" Parsing {} {}", a, k); });
+           const peg::any&) { cdb_trace(" Parsing {} \"{}\"", a, k); });
 
     cdb_trace("Parsing data={}", data);
 
@@ -50,15 +50,16 @@ bool DBCParser::parse(const std::string& data) noexcept {
         currPhrase = s;
     };
 
-    parser["symbols"] = [this, &idents](const peg::SemanticValues&) {
+    parser["symbols"] = [this, &idents](const peg::SemanticValues& sv) {
         can_database.symbols = idents;
+        cdb_debug("Found symbol {}", sv.c_str());
         idents.clear();
     };
 
-    parser["ident"] = [&idents](const peg::SemanticValues& sv) {
+    parser["TOKEN"] = [&idents](const peg::SemanticValues& sv) {
         auto s = sv.token();
         boost::algorithm::erase_all(s, "\n");
-        cdb_debug("Found ident {}", s);
+        cdb_debug("Found token {}", s);
         idents.push_back(s);
     };
 

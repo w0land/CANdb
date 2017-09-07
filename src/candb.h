@@ -35,7 +35,7 @@ struct Parser {
 
     template <typename ParserType>
     static std::unique_ptr<ParserInterface> create() {
-        static_assert(tuple_has<ParserType, supported>::value);
+        static_assert(tuple_has<ParserType, supported>::value, "");
         return std::make_unique<typename ParserType::ParserType>();
     }
 };

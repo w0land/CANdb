@@ -1,22 +1,21 @@
 # DBC Grammar
-grammar   <- _ version symbols?
+#grammar   <- version symbols EndOfFile
+grammar   <- version symbols EndOfFile
 
-version   <- 'VERSION' __ phrase _
-symbols   <- 'NS_ :' n ('  ' ident _)*
+version   <- ('VERSION' ' '* phrase _)*
+symbols   <- 'NS_ :' _ symbol_name* _ 
+
+symbol_name <- '  ' TOKEN
 
 phrase    <- < '"' (!'"' .)* '"' >
 sign      <- < [-+]? > _
-ident     <- < [a-zA-Z'_'] [a-zA-Z0-9'_']* > _
-char      <- '\\' [nrt'"\[\]\\]
-            / '\\' [0-2][0-7][0-7]
-            / '\\' [0-7][0-7]?
-            / !'\\' .
+TOKEN     <- < [a-zA-Z0-9'_']+ > _
 number    <- < [0-9]+ > _
 EndOfFile <- !.
 
 s         <- [\t]
-#n         <- [\r\n]
-n         <- [\r\n]
+NewLine   <- [\r\n]
 
-~_     <- [ \t\r\n]*
-~__    <- ![a-zA-Z0-9_] _
+~_     <- [\t\r\n]*
+~__    <- ![a-zA-Z0-9_]
+
