@@ -1,9 +1,8 @@
 # DBC Grammar
-#grammar   <- version symbols EndOfFile
 grammar   <- version symbols EndOfFile
 
-version   <- ('VERSION' ' '* phrase _)*
-symbols   <- 'NS_ :' _ symbol_name* _ 
+version   <- 'VERSION' s* phrase s* _
+symbols   <- ('NS_ :' _ symbol_name* _)?
 
 symbol_name <- '  ' TOKEN
 
@@ -13,9 +12,9 @@ TOKEN     <- < [a-zA-Z0-9'_']+ > _
 number    <- < [0-9]+ > _
 EndOfFile <- !.
 
-s         <- [\t]
+s         <- [ \t]
 NewLine   <- [\r\n]
 
 ~_     <- [\t\r\n]*
-~__    <- ![a-zA-Z0-9_]
+~__    <- ![a-zA-Z0-9]
 

@@ -51,7 +51,8 @@ TEST_F(DBCParserTests, correct_version_number) {
 
 TEST_F(DBCParserTests, one_symbol) {
     const std::string dbc =
-        R"(NS_ :
+        R"(VERSION ""
+NS_ :
   NS_DESC
 
 )";
