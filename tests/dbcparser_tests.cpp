@@ -1,5 +1,32 @@
 #include <gtest/gtest.h>
+#include <iterator>
+
 #include "dbcparser.h"
+#include "log.hpp"
+
+std::shared_ptr<spdlog::logger> kDefaultLogger =
+    []() -> std::shared_ptr<spdlog::logger> {
+    auto z = std::getenv("CDB_LEVEL");
+    auto logger = spdlog::stderr_color_mt("cdb");
+
+    if (z == nullptr) {
+        logger->set_level(spdlog::level::err);
+    } else {
+        const std::string ll{z};
+
+        auto it = std::find_if(
+            std::begin(spdlog::level::level_names),
+            std::end(spdlog::level::level_names),
+            [&ll](const char* name) { return std::string{name} == ll; });
+
+        if (it != std::end(spdlog::level::level_names)) {
+            int i = std::distance(std::begin(spdlog::level::level_names), it);
+            logger->set_level(static_cast<spdlog::level::level_enum>(i));
+        }
+    }
+
+    return logger;
+}();
 
 struct DBCParserTests : public ::testing::Test {
     CANdb::DBCParser parser;
@@ -17,28 +44,34 @@ TEST_F(DBCParserTests, one_liner) {
 }
 
 TEST_F(DBCParserTests, correct_version_number) {
-    EXPECT_TRUE(parser.parse("VERSION \"123\""));
+    EXPECT_TRUE(parser.parse("VERSION \"123 aa\" \n\n\n\n"));
     EXPECT_TRUE(parser.getDb().messages.empty());
-    EXPECT_EQ(parser.getDb().version, "123");
+    EXPECT_EQ(parser.getDb().version, "123 aa");
 }
 
-TEST_F(DBCParserTests, network_mode) {
+TEST_F(DBCParserTests, one_symbol) {
     const std::string dbc =
-        "VERSION \"abd 1234\" \n \
-        BU_: DummyNode";
+        R"(
+VERSION ""
+NS_ :
+  NS_DESC
 
-    EXPECT_TRUE(parser.parse(dbc));
-    EXPECT_TRUE(parser.getDb().messages.empty());
-    ASSERT_FALSE(parser.getDb().nodes.empty());
+)";
+
+    ASSERT_TRUE(parser.parse(dbc));
+    EXPECT_EQ(parser.getDb().symbols, std::vector<std::string>{{"NS_DESC"}});
 }
 
-TEST_F(DBCParserTests, simple_message_with_two_signals) {
+TEST_F(DBCParserTests, two_symbols) {
     const std::string dbc =
-        "BO_ 411 Info_CO_R: 8 IMC \n\
- SG_ TimedCharge1ActiveFri : 52|1@0+ (1,0) [0|1] \" \" Vector_XXX \n\
- SG_ TimedCharge1Active : 53|1@0+ (1,0) [0|1] \"\" Vector_XXX \n\
-\
-";
+        R"(
+VERSION ""
+NS_ :
+  NS_DESC
+  NS_DESC2
 
-    EXPECT_TRUE(parser.parse(dbc));
+)";
+
+    ASSERT_TRUE(parser.parse(dbc));
+    EXPECT_EQ(parser.getDb().symbols, std::vector<std::string>{{"NS_DESC"}});
 }

@@ -24,6 +24,7 @@ struct CANdb_t {
     std::map<CANmessage, std::vector<CANsignal> > messages;
     std::string version;
     std::vector<std::string> nodes;
+    std::vector<std::string> symbols;
 };
 
 #endif /* end of include guard: CANTYPES_HPP_ML9DFK7A */

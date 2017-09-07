@@ -1,128 +1,68 @@
 #include "dbcparser.h"
+#include "Resource.h"
 #include "lambda_visitor.hpp"
 #include "log.hpp"
 
+#include <peglib.h>
 #include <fstream>
 
-#include <boost/spirit/home/x3.hpp>
-#include <boost/variant.hpp>
+#include <boost/algorithm/string/erase.hpp>
+
+extern const char _resource_dbc_grammar_peg[];
+extern const size_t _resource_dbc_grammar_peg_len;
 
 using namespace CANdb;
 
-namespace {
-
-bool starts_with(const std::string& str, const std::string& prefix) {
-    auto trimmed = str;
-
-    trimmed.erase(trimmed.begin(),
-                  std::find_if(trimmed.begin(), trimmed.end(),
-                               [](char c) { return !std::isspace(c); }));
-
-    return trimmed.substr(0, prefix.size()) == prefix;
-}
-
-std::vector<std::string> split_dbc_into_chunks(const std::string& data) {
-    std::vector<std::string> ret;
-    std::string::size_type pos = 0;
-    std::string::size_type prev = 0;
-    while ((pos = data.find('\n', prev)) != std::string::npos) {
-        ret.push_back(data.substr(prev, pos - prev));
-        prev = pos + 1;
-    }
-
-    ret.push_back(data.substr(prev));
-
-    return ret;
-}
-
-std::vector<std::string> getAllMessages(const std::string& data) {
-    const auto split = split_dbc_into_chunks(data);
-
-    std::vector<std::string> filtered;
-
-    std::copy_if(split.begin(), split.end(), std::back_inserter(filtered),
-                 [](const auto& s) {
-                     return starts_with(s, "BO_") || starts_with(s, "SG_") ||
-                            s == "";
-                 });
-
-    std::vector<std::string> ret;
-    std::string currLines;
-    for (auto line : filtered) {
-        if (starts_with(line, "BO_") || starts_with(line, "SG_")) {
-            currLines += line;
-        } else if (line == "") {
-            ret.push_back(currLines);
-            currLines.clear();
-        }
-    }
-
-    return ret;
-}
-
-struct VersionTag {
-    std::string version;
-};
-
-using var = boost::variant<VersionTag>;
-
-const std::map<std::string, std::function<var(const std::string&)>> parsers{
-    // clang-format off
-    {"VERSION", [](const std::string& data) {
-         // clang-format on
-         VersionTag vt;
-         namespace x3 = boost::spirit::x3;
-         namespace ascii = boost::spirit::x3::ascii;
-         using x3::double_;
-         using x3::lexeme;
-         using x3::_attr;
-         using ascii::space;
-         using ascii::char_;
-
-         auto const quoted_string = lexeme['"' >> *(char_ - '"') >> '"'];
-         std::string ver;
-         auto version_cb = [&vt](const auto& v_) { vt.version = _attr(v_); };
-         x3::parse(data.begin(), data.end(),
-                   // begin grammar
-                   x3::lit("VERSION") >> space >> quoted_string[version_cb]
-                   // end grrammar
-                   );
-         return vt;
-     }},
-    {"BU_",
-     [](const auto& data) {
-         VersionTag vt;
-         return vt;
-     }}
-    // clang-format on
-};
-// clang-format on
-
-}  // namespace
+namespace {}  // namespace
 
 DBCParser::DBCParser() {}
 
 bool DBCParser::parse(const std::string& data) noexcept {
-    if (data.empty()) {
+    Resource dbc{_resource_dbc_grammar_peg, _resource_dbc_grammar_peg_len};
+
+    peg::parser parser;
+
+    parser.log = [](size_t l, size_t k, const std::string& s) {
+        cdb_trace("Parser log {}:{} {}", l, k, s);
+    };
+
+    if (!parser.load_grammar(dbc.data())) {
+        cdb_error("Unable to parse grammar");
         return false;
     }
 
-    const auto canMessages = getAllMessages(data);
-    const auto split = split_dbc_into_chunks(data);
+    parser.enable_trace(
+        [](const char* a, const char* k, long unsigned int,
+           const peg::SemanticValues&, const peg::Context&,
+           const peg::any&) { cdb_trace(" Parsing {} {}", a, k); });
 
-    if (split.empty()) {
-        return false;
-    }
+    cdb_trace("Parsing data={}", data);
 
-    for (const auto& line : split) {
-        auto result_variant = parsers.at("VERSION")(line);
+    std::string currPhrase = "junk";
+    std::vector<std::string> idents;
+    parser["version"] = [this, &currPhrase](const peg::SemanticValues&) {
+        can_database.version = currPhrase;
+    };
 
-        auto visitor = make_lambda_visitor<void>(
-            [this](VersionTag tag) { can_database.version = tag.version; });
-        boost::apply_visitor(visitor, result_variant);
-    }
+    parser["phrase"] = [&currPhrase](const peg::SemanticValues& sv) {
+        auto s = sv.token();
+        boost::algorithm::erase_all(s, "\"");
+        currPhrase = s;
+    };
 
-    return true;
+    parser["symbols"] = [this, &idents](const peg::SemanticValues&) {
+        can_database.symbols = idents;
+        idents.clear();
+    };
+
+    parser["ident"] = [&idents](const peg::SemanticValues& sv) {
+        auto s = sv.token();
+        boost::algorithm::erase_all(s, "\n");
+        cdb_debug("Found ident {}", s);
+        idents.push_back(s);
+    };
+
+    return parser.parse(data.c_str());
 }
 
 CANdb_t DBCParser::getDb() const { return can_database; }

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.3.0)
 
-project(CANdbc CXX)
+project(CANdbc CXX C)
 
 option(WITH_COVERAGE "Build with coverage" OFF)
 option(WITH_TESTS "Build with test" ON)
@@ -10,7 +10,10 @@ if(NOT MSVC)
 endif()
 
 include_directories(${CMAKE_SOURCE_DIR}/3rdParty/spdlog/include)
+include_directories(${CMAKE_SOURCE_DIR}/3rdParty/embed-resource)
 include_directories(${CMAKE_SOURCE_DIR}/src)
+
+add_subdirectory(${CMAKE_SOURCE_DIR}/3rdParty/embed-resource)
 
 find_package(Threads REQUIRED)
 find_package(GTest)
