@@ -10,3 +10,6 @@
 [submodule "3rdParty/gtest"]
 	path = 3rdParty/gtest
 	url = https://github.com/google/googletest.git
+[submodule "tests/dbc/opendbc"]
+	path = tests/dbc/opendbc
+	url = https://github.com/commaai/opendbc.git
