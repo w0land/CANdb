@@ -49,28 +49,60 @@ TEST_F(DBCParserTests, correct_version_number) {
     EXPECT_EQ(parser.getDb().version, "123 aa");
 }
 
-TEST_F(DBCParserTests, one_symbol) {
-    const std::string dbc =
+using strings = std::vector<std::string>;
+
+struct SymbolsTest : public ::testing::TestWithParam<strings> {
+    CANdb::DBCParser parser;
+};
+
+TEST_P(SymbolsTest, one_symbol) {
+    auto params = GetParam();
+    std::string dbc =
         R"(VERSION ""
 NS_ :
-  NS_DESC
 
 )";
 
+    for (const auto& param : params) {
+        dbc += "  ";
+        dbc += param;
+        dbc += "\n";
+    }
+
     ASSERT_TRUE(parser.parse(dbc));
-    EXPECT_EQ(parser.getDb().symbols, std::vector<std::string>{{"NS_DESC"}});
+    EXPECT_EQ(parser.getDb().symbols, params);
 }
 
-TEST_F(DBCParserTests, two_symbols) {
-    const std::string dbc =
+INSTANTIATE_TEST_CASE_P(Symbols, SymbolsTest,
+                        ::testing::Values(strings{"NS_DESC"},
+                                          strings{"NS_DESC2", "NS_DESC"}));
+
+struct EcusTest : public ::testing::TestWithParam<strings> {
+    CANdb::DBCParser parser;
+};
+
+TEST_P(EcusTest, ecus) {
+    auto params = GetParam();
+    std::string dbc =
         R"(VERSION ""
 NS_ :
   NS_DESC
   NS_DESC2
 
-)";
-
+BU_ :)";
+    if (params.size() == 1) {
+        dbc += params.at(0);
+        dbc += "\n\n";
+    } else if (params.size() > 1) {
+        dbc += "\n";
+        for (const auto& param : params) {
+            dbc += "  " + param;
+            dbc += "\n";
+        }
+    }
     ASSERT_TRUE(parser.parse(dbc));
-    const std::vector<std::string> expected {{"NS_DESC"}, {"NS_DESC2"}};
-    EXPECT_EQ(parser.getDb().symbols, expected);
 }
+
+INSTANTIATE_TEST_CASE_P(Ecus, EcusTest,
+                        ::testing::Values(strings{"NEO"},
+                                          strings{"NEO", "MCU"}));
