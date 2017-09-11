@@ -37,6 +37,7 @@ struct CANdb_t {
     std::string version;
     std::vector<std::string> nodes;
     std::vector<std::string> symbols;
+    std::vector<std::string> ecus;
 };
 
 

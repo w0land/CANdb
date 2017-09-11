@@ -1,11 +1,10 @@
 # DBC Grammar
-grammar   <- version symbols bs ecus ecus_nl EndOfFile
+grammar   <- version symbols bs ecus EndOfFile
 
 version   <- 'VERSION' s* phrase s* _
 symbols   <- ('NS_ :' _ symbol_name* _)?
 bs        <- ('BS_ :' _ symbol_name* _)?
-ecus      <- ('BU_ :' s* TOKEN _)? 
-ecus_nl   <- ('BU_ :' _ symbol_name* _)?
+ecus      <- ('BU_ :' _ symbol_name* _)?
 
 symbol_name <- '  ' TOKEN
 

@@ -81,7 +81,7 @@ struct EcusTest : public ::testing::TestWithParam<strings> {
     CANdb::DBCParser parser;
 };
 
-TEST_P(EcusTest, ecus) {
+TEST_P(EcusTest, single_line) {
     auto params = GetParam();
     std::string dbc =
         R"(VERSION ""
@@ -90,17 +90,29 @@ NS_ :
   NS_DESC2
 
 BU_ :)";
-    if (params.size() == 1) {
-        dbc += params.at(0);
-        dbc += "\n\n";
-    } else if (params.size() > 1) {
-        dbc += "\n";
-        for (const auto& param : params) {
-            dbc += "  " + param;
-            dbc += "\n";
-        }
+    for (const auto& ecu : params) {
+        dbc += " " + ecu;
     }
+    dbc += "\n";
     ASSERT_TRUE(parser.parse(dbc));
+    EXPECT_EQ(parser.getDb().ecus, params);
+}
+
+TEST_P(EcusTest, multi_line) {
+    auto params = GetParam();
+    std::string dbc =
+        R"(VERSION ""
+NS_ :
+  NS_DESC
+  NS_DESC2
+
+BU_ :)";
+    for (const auto& ecu : params) {
+        dbc += std::string{"\n"} + std::string{"  "} + ecu;
+    }
+    dbc += "\n";
+    ASSERT_TRUE(parser.parse(dbc));
+    EXPECT_EQ(parser.getDb().ecus, params);
 }
 
 INSTANTIATE_TEST_CASE_P(Ecus, EcusTest,

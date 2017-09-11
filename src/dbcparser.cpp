@@ -63,6 +63,13 @@ bool DBCParser::parse(const std::string& data) noexcept {
         idents.push_back(s);
     };
 
+    parser["ecus"] = [&idents, this](const peg::SemanticValues& sv) {
+        can_database.ecus = idents;
+        cdb_debug("Found ecus ");
+        idents.clear();
+
+    };
+
     return parser.parse(data.c_str());
 }
 
