@@ -111,10 +111,14 @@ BU_ :)";
         dbc += std::string{"\n"} + std::string{"  "} + ecu;
     }
     dbc += "\n";
-    ASSERT_TRUE(parser.parse(dbc));
+    if (not params.empty()) {
+        ASSERT_TRUE(parser.parse(dbc));
+    } else {
+        ASSERT_FALSE(parser.parse(dbc));
+    }
     EXPECT_EQ(parser.getDb().ecus, params);
 }
 
 INSTANTIATE_TEST_CASE_P(Ecus, EcusTest,
-                        ::testing::Values(strings{"NEO"},
+                        ::testing::Values(strings{""}, strings{"NEO"},
                                           strings{"NEO", "MCU"}));
