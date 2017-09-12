@@ -12,8 +12,7 @@ extern const char _resource_dbc_grammar_peg[];
 extern const size_t _resource_dbc_grammar_peg_len;
 
 using namespace CANdb;
-
-namespace {}  // namespace
+using strings = std::vector<std::string>;
 
 DBCParser::DBCParser() {}
 
@@ -38,16 +37,24 @@ bool DBCParser::parse(const std::string& data) noexcept {
 
     cdb_trace("Parsing data={}", data);
 
-    std::string currPhrase = "junk";
-    std::vector<std::string> idents;
-    parser["version"] = [this, &currPhrase](const peg::SemanticValues&) {
-        can_database.version = currPhrase;
+    strings phrases;
+    strings idents;
+    std::vector<std::uint32_t> numbers;
+    using PhrasePair = std::pair<std::uint32_t, std::string>;
+    std::vector<PhrasePair> phrasesPairs;
+
+    parser["version"] = [this, &phrases](const peg::SemanticValues&) {
+        if (phrases.empty()) {
+            throw peg::parse_error("Version phrase not found");
+        }
+        can_database.version = phrases.at(0);
+        phrases.clear();
     };
 
-    parser["phrase"] = [&currPhrase](const peg::SemanticValues& sv) {
+    parser["phrase"] = [&phrases](const peg::SemanticValues& sv) {
         auto s = sv.token();
         boost::algorithm::erase_all(s, "\"");
-        currPhrase = s;
+        phrases.push_back(s);
     };
 
     parser["symbols"] = [this, &idents](const peg::SemanticValues& sv) {
@@ -67,7 +74,30 @@ bool DBCParser::parse(const std::string& data) noexcept {
         can_database.ecus = idents;
         cdb_debug("Found ecus ");
         idents.clear();
+    };
 
+    parser["number"] = [&numbers, this](const peg::SemanticValues& sv) {
+        auto number = std::stoi(sv.token(), nullptr, 10);
+        cdb_debug("Found number {}", number);
+        numbers.push_back(number);
+    };
+
+    parser["number_phrase_pair"] = [&phrasesPairs, &numbers, &phrases,
+                                    this](const peg::SemanticValues& sv) {
+        cdb_debug("number phrase pair");
+        phrasesPairs.push_back(std::make_pair(numbers.at(0), phrases.at(0)));
+    };
+
+
+    parser["val_entry"] = [this, phrasesPairs](const peg::SemanticValues&) {
+        std::vector<CANdb_t::ValTable::ValTableEntry> tab;
+        cdb_debug("Val table entry found");
+        std::transform(
+            phrasesPairs.begin(), phrasesPairs.end(), std::back_inserter(tab),
+            [](const auto& p) {
+                return CANdb_t::ValTable::ValTableEntry{p.first, p.second};
+            });
+        can_database.val_tables.push_back(CANdb_t::ValTable{"", tab});
     };
 
     return parser.parse(data.c_str());
