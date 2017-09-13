@@ -9,15 +9,29 @@
 enum class CANsignalType { Int, Float, String };
 
 struct CANsignal {
-    std::string name;
-    uint8_t startBit;
-    uint8_t len;
+    std::string signal_name;
+    std::uint8_t startBit;
+    std::uint8_t signalSize;
+    std::uint8_t byteOrder;
+    std::string value_type;
+    std::uint8_t factor;
+    std::uint8_t offset;
+    std::int8_t min;
+    std::int8_t max;
+    std::string unit;
+    std::string receiver;
     CANsignalType type;
+
+    bool operator==(const CANsignal& rhs) const {
+        return signal_name == rhs.signal_name;
+    }
 };
 
 struct CANmessage {
     uint32_t id;
     std::string name;
+    std::uint32_t dlc;
+    std::string ecu;
 };
 
 namespace std {
