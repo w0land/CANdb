@@ -28,7 +28,7 @@ struct CANsignal {
 };
 
 struct CANmessage {
-    uint32_t id;
+    std::uint32_t id;
     std::string name;
     std::uint32_t dlc;
     std::string ecu;

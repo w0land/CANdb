@@ -43,6 +43,10 @@ struct EcusTest : public ::testing::TestWithParam<strings> {
     CANdb::DBCParser parser;
 };
 
+struct ValuesTableTest : public ::testing::TestWithParam<strings> {
+    CANdb::DBCParser parser;
+};
+
 struct ValuesTest : public ::testing::TestWithParam<strings> {
     CANdb::DBCParser parser;
 };
@@ -120,7 +124,7 @@ BU_ :)";
     EXPECT_EQ(parser.getDb().ecus, params);
 }
 
-TEST_P(ValuesTest, val_table) {
+TEST_P(ValuesTableTest, val_table) {
     auto values = GetParam();
     std::string dbc =
         R"(VERSION ""
@@ -238,12 +242,33 @@ BU_ :
         "DAS_steeringHapticRequest", 7, 1, 0, "+", 1, 0, 0, 0, "", "EPAS"};
     EXPECT_EQ(parser.getDb().messages.at(msg).at(3), expSig);
 
-    msg = CANmessage { 257, "GTW_epasControl", 3, "NEO" };
+    msg = CANmessage{257, "GTW_epasControl", 3, "NEO"};
     ASSERT_EQ(parser.getDb().messages.at(msg).size(), 7);
 
-    expSig = CANsignal{
-        "GTW_epasEmergencyOn", 0, 1, 0, "+", 1, 0, 2, -1, "", "EPAS"};
+    expSig =
+        CANsignal{"GTW_epasEmergencyOn", 0, 1, 0, "+", 1, 0, 2, -1, "", "EPAS"};
     EXPECT_EQ(parser.getDb().messages.at(msg).at(3), expSig);
+}
+
+TEST_P(ValuesTest, vals) {
+    auto values = GetParam();
+    std::string dbc =
+        R"(VERSION ""
+NS_ :
+  NS_DESC
+  NS_DESC2
+
+BU_ :
+  NEO
+  MCU
+  GTW
+
+)";
+    for (const auto& value : values) {
+        dbc += value;
+        dbc += "\n";
+    }
+    ASSERT_TRUE(parser.parse(dbc));
 }
 
 // test case instantiations
@@ -253,10 +278,14 @@ INSTANTIATE_TEST_CASE_P(Ecus, EcusTest,
                                           strings{"NEO", "MCU"}));
 
 INSTANTIATE_TEST_CASE_P(Symbols, SymbolsTest,
-                        ::testing::Values(strings{"NS_DESC"},
+                        ::testing::Values(strings{""}, strings{"NS_DESC"},
                                           strings{"NS_DESC2", "NS_DESC"}));
+INSTANTIATE_TEST_CASE_P(Value, ValuesTest,
+                        ::testing::Values(strings{
+                            "VAL_ 880 EPAS_steeringReduced 0 \"NORMAL_ASSIST\" "
+                            "1 \"REDUCED_ASSIST\" ;"}));
 
-INSTANTIATE_TEST_CASE_P(Values, ValuesTest,
+INSTANTIATE_TEST_CASE_P(Values, ValuesTableTest,
                         ::testing::Values(strings{
                             "StW_AnglHP_Spd 16383 \"SNA\" ;",
                             "DI_aebFaultReason 15 "

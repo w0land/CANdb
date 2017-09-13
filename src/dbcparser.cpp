@@ -105,7 +105,7 @@ bool DBCParser::parse(const std::string& data) noexcept {
 
     parser["symbols"] = [this, &idents](const peg::SemanticValues& sv) {
         can_database.symbols = to_vector(idents);
-        cdb_debug("Found symbol {}", sv.c_str());
+        cdb_debug("Found symbols {}", sv.c_str());
         idents.clear();
     };
 
@@ -123,7 +123,7 @@ bool DBCParser::parse(const std::string& data) noexcept {
 
     parser["ecus"] = [&idents, this](const peg::SemanticValues& sv) {
         can_database.ecus = to_vector(idents);
-        cdb_debug("Found ecus");
+        cdb_debug("Found ecus {}", sv.c_str());
         idents.clear();
     };
 
@@ -153,18 +153,20 @@ bool DBCParser::parse(const std::string& data) noexcept {
     std::vector<CANsignal> signals;
     parser["message"] = [this, &numbers, &signals,
                          &idents](const peg::SemanticValues& sv) {
-        cdb_debug("Found a message {} signals = {}", idents.size(), signals.size());
+        cdb_debug("Found a message {} signals = {}", idents.size(),
+                  signals.size());
         if (numbers.size() < 2 || idents.size() < 2) {
             return;
         }
-        CANmessage msg{numbers.at(0), idents.at(0), numbers.at(1),
-                       idents.at(1)};
+        CANmessage msg{static_cast<std::uint32_t>(numbers.at(0)), idents.at(0),
+                       static_cast<std::uint32_t>(numbers.at(1)), idents.at(1)};
         cdb_debug("Found a message with id = {}", msg.id);
         can_database.messages[msg] = signals;
         signals.clear();
         numbers.clear();
         idents.clear();
     };
+
     parser["signal"] = [&idents, &numbers, &phrases, &signals,
                         &signs](const peg::SemanticValues& sv) {
         cdb_debug("Found signal {}", sv.c_str());
@@ -185,9 +187,9 @@ bool DBCParser::parse(const std::string& data) noexcept {
 
         auto signal_name = take_back(idents);
 
-        signals.push_back(CANsignal{signal_name, startBit, signalSize, byteOrder,
-                        value_type,  factor,   offset,     min,
-                        max,         unit,     receiver});
+        signals.push_back(CANsignal{signal_name, startBit, signalSize,
+                                    byteOrder, value_type, factor, offset, min,
+                                    max, unit, receiver});
     };
 
     return parser.parse(data.c_str());
