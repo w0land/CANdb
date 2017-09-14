@@ -9,6 +9,7 @@
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/erase.hpp>
 #include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/replace.hpp>
 
 extern const char _resource_dbc_grammar_peg[];
 extern const size_t _resource_dbc_grammar_peg_len;
@@ -47,15 +48,19 @@ using strings = std::vector<std::string>;
 
 std::string withLines(const std::string& dbcFile) {
     strings split;
-    boost::split(split, dbcFile, boost::is_any_of("\n"));
 
+    auto withDots = dbcFile; 
+    boost::replace_all(withDots, " ", "$");
+    boost::replace_all(withDots, "\t", "[t]");
+    boost::split(split, withDots, boost::is_any_of("\n"));
     std::string buff;
 
-    int counter{0};
+    int counter{1};
     for (const auto& line : split) {
         buff += std::to_string(counter++) + std::string{": "} + line +
                 std::string{"\n"};
     }
+
 
     return buff;
 }
@@ -64,6 +69,10 @@ DBCParser::DBCParser() {}
 
 bool DBCParser::parse(const std::string& data) noexcept {
     Resource dbc{_resource_dbc_grammar_peg, _resource_dbc_grammar_peg_len};
+
+    auto noTabsData = data;
+
+    boost::replace_all(noTabsData, "\t", "  ");
 
     peg::parser parser;
 
@@ -81,7 +90,7 @@ bool DBCParser::parse(const std::string& data) noexcept {
            const peg::SemanticValues&, const peg::Context&,
            const peg::any&) { cdb_trace(" Parsing {} \"{}\"", a, k); });
 
-    cdb_debug("DBC file  = \n{}", withLines(data));
+    cdb_debug("DBC file  = \n{}", withLines(noTabsData));
 
     strings phrases;
     std::deque<std::string> idents, signs;
@@ -116,14 +125,18 @@ bool DBCParser::parse(const std::string& data) noexcept {
         idents.push_back(s);
     };
 
+    parser["bs"] = [](const peg::SemanticValues& sv) {
+        cdb_debug("Found BS {}", sv.c_str());
+    };
+
     parser["sign"] = [&signs](const peg::SemanticValues& sv) {
         cdb_debug("Found sign {}", sv.token());
         signs.push_back(sv.token());
     };
 
-    parser["ecus"] = [&idents, this](const peg::SemanticValues& sv) {
+    parser["ecus_sl"] = [&idents, this](const peg::SemanticValues& sv) {
         can_database.ecus = to_vector(idents);
-        cdb_debug("Found ecus {}", sv.c_str());
+        cdb_debug("Found ecus [bu] {}", sv.c_str());
         idents.clear();
     };
 
@@ -192,7 +205,7 @@ bool DBCParser::parse(const std::string& data) noexcept {
                                     max, unit, receiver});
     };
 
-    return parser.parse(data.c_str());
+    return parser.parse(noTabsData.c_str());
 }
 
 CANdb_t DBCParser::getDb() const { return can_database; }

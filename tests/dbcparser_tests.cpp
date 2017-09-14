@@ -1,5 +1,4 @@
 #include <gtest/gtest.h>
-#include <peglib.h>
 #include <iterator>
 
 #include "dbc_parser_data.hpp"
@@ -30,6 +29,7 @@ std::shared_ptr<spdlog::logger> kDefaultLogger =
 
     return logger;
 }();
+
 
 struct DBCParserTests : public ::testing::Test {
     CANdb::DBCParser parser;
@@ -72,12 +72,12 @@ TEST_F(DBCParserTests, correct_version_number) {
     EXPECT_EQ(parser.getDb().version, "123 aa");
 }
 
+
 TEST_P(SymbolsTest, one_symbol) {
     auto params = GetParam();
     std::string dbc =
         R"(VERSION ""
 NS_ :
-
 )";
 
     for (const auto& param : params) {
@@ -100,7 +100,7 @@ NS_ :
 
 BU_ :)";
     for (const auto& ecu : params) {
-        dbc += " " + ecu;
+        dbc += "  " + ecu;
     }
     dbc += "\n";
     ASSERT_TRUE(parser.parse(dbc));
@@ -114,6 +114,8 @@ TEST_P(EcusTest, multi_line) {
 NS_ :
   NS_DESC
   NS_DESC2
+
+BS_:
 
 BU_ :)";
     for (const auto& ecu : params) {
@@ -145,46 +147,6 @@ BU_ :
     ASSERT_TRUE(parser.parse(dbc));
 
     EXPECT_EQ(parser.getDb().val_tables.size(), values.size());
-}
-
-TEST_F(MessageTests, parse_signal) {
-    peg::parser parser;
-
-    parser.log = [](size_t l, size_t k, const std::string& s) {
-        cdb_error("Parser log {}:{} {}", l, k, s);
-    };
-
-    ASSERT_TRUE(parser.load_grammar(
-        R"(grammar <- message* _ EndOfFile
-            message   <- 'BO_' s* number s* TOKEN ':' s number s TOKEN _ signal*
-            signal <- (s* 'SG_' s* TOKEN s* ':' s* number '|' number '@' number sign s* '(' number ',' number ')' s* '[' number '|' number ']' s* phrase s* TOKEN _)
-
-            s         <- [ \t]
-            TOKEN     <- < [a-zA-Z0-9'_']+ > _
-            sign      <- < [-+]? > _
-            NewLine   <- [\r\n]
-            phrase    <- < '"' (!'"' .)* '"' >
-            number    <- < sign [0-9]+ > _
-            EndOfFile <- !.
-            ~_        <- [\t\r\n]*
-            ~__       <- ![a-zA-Z0-9]
-
-            )"));
-
-    auto bo = R"(BO_ 257 GTW_epasControl: 3 NEO
-  SG_ GTW_epasControlChecksum : 16|8@1+ (1,0) [0|255] "" NEO
-  SG_ GTW_epasControlChecksum : 16|8@1+ (1,0) [0|255] "" NEO
-  SG_ GTW_epasEmergencyOn : 0|1@1+ (1,0) [2|-1] "" NEO
-
-BO_ 257 GTW_epasControl: 3 NEO
-  SG_ GTW_epasControlChecksum : 16|8@1+ (1,0) [0|255] "" NEO)";
-
-    // auto bo = R"(SG_ GTW_epasControlChecksum : 16|8@1+ (1,0) [0|255] ""
-    // NEO)";
-
-    std::cout << bo << std::endl;
-
-    EXPECT_TRUE(parser.parse(bo));
 }
 
 TEST_F(MessageTests, messages) {
@@ -278,7 +240,7 @@ INSTANTIATE_TEST_CASE_P(Ecus, EcusTest,
                                           strings{"NEO", "MCU"}));
 
 INSTANTIATE_TEST_CASE_P(Symbols, SymbolsTest,
-                        ::testing::Values(strings{""}, strings{"NS_DESC"},
+                        ::testing::Values(strings{}, strings{"NS_DESC"},
                                           strings{"NS_DESC2", "NS_DESC"}));
 INSTANTIATE_TEST_CASE_P(Value, ValuesTest,
                         ::testing::Values(strings{
