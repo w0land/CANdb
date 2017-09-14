@@ -34,7 +34,6 @@ struct PegParser : public ::testing::Test {
     peg::parser parser;
 };
 
-
 TEST_F(PegParser, ns_grammar) {
     ASSERT_TRUE(parser.load_grammar(
         R"(grammar <- symbols EndOfFile
@@ -88,11 +87,7 @@ TEST_F(PegParser, ns_grammar) {
     }
 }
 
-TEST_F(PegParser, simple_message_grammar) {
-    parser.log = [](size_t l, size_t k, const std::string& s) {
-        cdb_error("Parser log {}:{} {}", l, k, s);
-    };
-
+TEST_F(PegParser, parse_message_grammar) {
     ASSERT_TRUE(parser.load_grammar(
         R"(grammar <- message* _ EndOfFile
             message   <- 'BO_' s* number s* TOKEN ':' s number s TOKEN _ signal*
@@ -103,7 +98,9 @@ TEST_F(PegParser, simple_message_grammar) {
             sign      <- < [-+]? > _
             NewLine   <- [\r\n]
             phrase    <- < '"' (!'"' .)* '"' >
-            number    <- < sign [0-9]+ > _
+            number    <- float / integer 
+            integer   <- < sign? [0-9]+ > _
+            float     <- < sign? [0-9]+'.'[0-9]+ > _
             EndOfFile <- !.
             ~_        <- [\t\r\n]*
             ~__       <- ![a-zA-Z0-9]
@@ -116,7 +113,50 @@ TEST_F(PegParser, simple_message_grammar) {
   SG_ GTW_epasEmergencyOn : 0|1@1+ (1,0) [2|-1] "" NEO
 
 BO_ 257 GTW_epasControl: 3 NEO
+  SG_ DAS_steeringAngleRequest : 6|15@0+ (0.1,-1638.35) [-1638.35|1638.35] "deg" EPAS
   SG_ GTW_epasControlChecksum : 16|8@1+ (1,0) [0|255] "" NEO)";
 
     EXPECT_TRUE(parser.parse(bo));
+}
+
+TEST_F(PegParser, parse_float) {
+    ASSERT_TRUE(parser.load_grammar(
+        R"(grammar <- float
+          float     <- < sign? [0-9]+'.'[0-9]+ > _
+          sign      <- < [-+] > _
+          ~_     <- [\t\r\n]*
+
+        )"));
+
+    EXPECT_TRUE(parser.parse("-10.151414141414"));
+}
+
+TEST_F(PegParser, parse_number) {
+    ASSERT_TRUE(parser.load_grammar(
+        R"(grammar <- number
+            number    <- float / integer
+            integer   <- < sign? [0-9]+ > _
+            float     <- < sign? [0-9]+'.'[0-9]+ > _
+            sign      <- < [-+] > _
+            ~_     <- [\t\r\n]*
+
+        )"));
+
+    EXPECT_TRUE(parser.parse("-10.151414141414"));
+    EXPECT_TRUE(parser.parse("-1638.35"));
+    EXPECT_TRUE(parser.parse("15"));
+}
+
+TEST_F(PegParser, parse_number_dash_number) {
+    ASSERT_TRUE(parser.load_grammar(
+        R"(grammar <- '[' number '|' number ']'
+            number    <- float / integer
+            integer   <- < sign? [0-9]+ > _
+            float     <- < sign? [0-9]+'.'[0-9]+ > _
+            sign      <- < [-+] > _
+            ~_     <- [\t\r\n]*
+
+        )"));
+
+    EXPECT_TRUE(parser.parse("[-1638.35|-1638.35]"));
 }
