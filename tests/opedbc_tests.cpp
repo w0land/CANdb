@@ -58,11 +58,11 @@ TEST_P(OpenDBCTest, parse_dbc_file) {
 INSTANTIATE_TEST_CASE_P(
     TeslaDBC, OpenDBCTest,
     ::testing::Values(
-        std::string{"tesla_can.dbc"}, "acura_ilx_2016_can.dbc",
-        "acura_ilx_2016_can.dbc", "acura_ilx_2016_nidec.dbc",
-        "gm_global_a_chassis.dbc", "gm_global_a_lowspeed.dbc",
-        "gm_global_a_object.dbc", "gm_global_a_powertrain.dbc",
-        "honda_accord_touring_2016_can.dbc", "honda_civic_touring_2016_can.dbc",
-        "honda_crv_ex_2017_can.dbc", "honda_crv_touring_2016_can.dbc",
-        "subaru_outback_2016_eyesight.dbc", "tesla_can.dbc",
-        "toyota_prius_2017_can0.dbc", "toyota_prius_2017_can1.dbc"));
+        "tesla_can.dbc", "acura_ilx_2016_can.dbc"));
+        //"acura_ilx_2016_can.dbc", "acura_ilx_2016_nidec.dbc",
+        //"gm_global_a_chassis.dbc", "gm_global_a_lowspeed.dbc",
+        //"gm_global_a_object.dbc", "gm_global_a_powertrain.dbc",
+        //"honda_accord_touring_2016_can.dbc", "honda_civic_touring_2016_can.dbc",
+        //"honda_crv_ex_2017_can.dbc", "honda_crv_touring_2016_can.dbc",
+        //"subaru_outback_2016_eyesight.dbc", "tesla_can.dbc",
+        //"toyota_prius_2017_can0.dbc", "toyota_prius_2017_can1.dbc"));
