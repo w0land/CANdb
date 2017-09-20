@@ -71,8 +71,6 @@ bool DBCParser::parse(const std::string& data) noexcept {
 
     auto noTabsData = data;
 
-    boost::replace_all(noTabsData, "\t", "  ");
-
     peg::parser parser;
 
     parser.log = [](size_t l, size_t k, const std::string& s) {
