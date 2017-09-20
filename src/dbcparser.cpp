@@ -91,7 +91,7 @@ bool DBCParser::parse(const std::string& data) noexcept {
 
     strings phrases;
     std::deque<std::string> idents, signs;
-    std::deque<std::int32_t> numbers;
+    std::deque<std::int64_t> numbers;
     using PhrasePair = std::pair<std::uint32_t, std::string>;
     std::vector<PhrasePair> phrasesPairs;
 
@@ -142,7 +142,8 @@ bool DBCParser::parse(const std::string& data) noexcept {
     };
 
     parser["number"] = [&signs, &numbers, this](const peg::SemanticValues& sv) {
-        auto number = std::stoi(sv.token(), nullptr, 10);
+        cdb_debug("Found number {}", sv.token());
+        auto number = std::stol(sv.token(), nullptr, 10);
         cdb_trace("Found number {}", number);
         numbers.push_back(number);
     };
