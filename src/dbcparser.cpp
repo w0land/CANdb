@@ -8,8 +8,8 @@
 
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/erase.hpp>
-#include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/replace.hpp>
+#include <boost/algorithm/string/split.hpp>
 
 extern const char _resource_dbc_grammar_peg[];
 extern const size_t _resource_dbc_grammar_peg_len;
@@ -49,7 +49,7 @@ using strings = std::vector<std::string>;
 std::string withLines(const std::string& dbcFile) {
     strings split;
 
-    auto withDots = dbcFile; 
+    auto withDots = dbcFile;
     boost::replace_all(withDots, " ", "$");
     boost::replace_all(withDots, "\t", "[t]");
     boost::split(split, withDots, boost::is_any_of("\n"));
@@ -60,7 +60,6 @@ std::string withLines(const std::string& dbcFile) {
         buff += std::to_string(counter++) + std::string{": "} + line +
                 std::string{"\n"};
     }
-
 
     return buff;
 }
@@ -112,49 +111,54 @@ bool DBCParser::parse(const std::string& data) noexcept {
         phrases.push_back(s);
     };
 
-    parser["symbols"] = [this, &idents](const peg::SemanticValues& sv) {
-        can_database.symbols = to_vector(idents);
-        cdb_debug("Found symbols {}", sv.c_str());
-        idents.clear();
+    parser["ns"] = [this, &idents](const peg::SemanticValues &sv) {
+      can_database.symbols = to_vector(idents);
+      cdb_debug("Found symbols {}", sv.token());
+      idents.clear();
     };
 
     parser["TOKEN"] = [&idents](const peg::SemanticValues& sv) {
         auto s = sv.token();
         boost::algorithm::erase_all(s, "\n");
-        cdb_debug("Found token {}", s);
+        cdb_trace("Found token {}", s);
         idents.push_back(s);
     };
 
-    parser["bs"] = [](const peg::SemanticValues& sv) {
-        cdb_debug("Found BS {}", sv.c_str());
+    parser["bs"] = [](const peg::SemanticValues &sv) {
+      cdb_debug("Found BS {}", sv.token());
     };
 
-    parser["sign"] = [&signs](const peg::SemanticValues& sv) {
-        cdb_debug("Found sign {}", sv.token());
-        signs.push_back(sv.token());
+    parser["sign"] = [&signs](const peg::SemanticValues &sv) {
+      cdb_trace("Found sign {}", sv.token());
+      signs.push_back(sv.token());
     };
 
-    parser["ecus_sl"] = [&idents, this](const peg::SemanticValues& sv) {
-        can_database.ecus = to_vector(idents);
-        cdb_debug("Found ecus [bu] {}", sv.c_str());
-        idents.clear();
+    parser["bu"] = [&idents, this](const peg::SemanticValues &sv) {
+      can_database.ecus = to_vector(idents);
+      cdb_debug("Found ecus [bu] {}", sv.token());
+      idents.clear();
+    };
+
+    parser["bu_sl"] = [&idents, this](const peg::SemanticValues &sv) {
+      can_database.ecus = to_vector(idents);
+      cdb_debug("Found ecus [bu] {}", sv.token());
+      idents.clear();
     };
 
     parser["number"] = [&signs, &numbers, this](const peg::SemanticValues& sv) {
         auto number = std::stoi(sv.token(), nullptr, 10);
-        cdb_debug("Found number {}", number);
+        cdb_trace("Found number {}", number);
         numbers.push_back(number);
     };
 
     parser["number_phrase_pair"] = [&phrasesPairs, &numbers, &phrases,
-                                    this](const peg::SemanticValues& sv) {
-        cdb_debug("number phrase pair");
-        phrasesPairs.push_back(std::make_pair(numbers.at(0), phrases.at(0)));
+                                    this](const peg::SemanticValues &sv) {
+      cdb_trace("number phrase pair");
+      phrasesPairs.push_back(std::make_pair(numbers.at(0), phrases.at(0)));
     };
 
     parser["val_entry"] = [this, phrasesPairs](const peg::SemanticValues&) {
         std::vector<CANdb_t::ValTable::ValTableEntry> tab;
-        cdb_debug("Val table entry found");
         std::transform(
             phrasesPairs.begin(), phrasesPairs.end(), std::back_inserter(tab),
             [](const auto& p) {
@@ -181,28 +185,32 @@ bool DBCParser::parse(const std::string& data) noexcept {
     };
 
     parser["signal"] = [&idents, &numbers, &phrases, &signals,
-                        &signs](const peg::SemanticValues& sv) {
-        cdb_debug("Found signal {}", sv.c_str());
+                        &signs](const peg::SemanticValues &sv) {
+      cdb_debug("Found signal {}", sv.token());
 
-        auto receiver = take_back(idents);
-        auto unit = take_back(phrases);
+      auto receiver = take_back(idents);
+      auto unit = take_back(phrases);
 
-        auto max = take_back(numbers);
-        auto min = take_back(numbers);
-        auto offset = take_back(numbers);
-        auto factor = take_back(numbers);
+      auto max = take_back(numbers);
+      auto min = take_back(numbers);
+      auto offset = take_back(numbers);
+      auto factor = take_back(numbers);
 
-        auto value_type = take_back(signs);
+      auto value_type = take_back(signs);
 
-        auto byteOrder = take_back(numbers);
-        auto signalSize = take_back(numbers);
-        auto startBit = take_back(numbers);
+      auto byteOrder = take_back(numbers);
+      auto signalSize = take_back(numbers);
+      auto startBit = take_back(numbers);
 
-        auto signal_name = take_back(idents);
+      auto signal_name = take_back(idents);
 
-        signals.push_back(CANsignal{signal_name, startBit, signalSize,
-                                    byteOrder, value_type, factor, offset, min,
-                                    max, unit, receiver});
+      signals.push_back(CANsignal{
+          signal_name, static_cast<std::uint8_t>(startBit),
+          static_cast<std::uint8_t>(signalSize),
+          static_cast<std::uint8_t>(byteOrder), value_type,
+          static_cast<std::uint8_t>(factor), static_cast<std::uint8_t>(offset),
+          static_cast<std::int8_t>(min), static_cast<std::int8_t>(max), unit,
+          receiver});
     };
 
     return parser.parse(noTabsData.c_str());

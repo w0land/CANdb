@@ -33,8 +33,9 @@ struct TeslaDBCParts  : public ::testing::Test {
 
 TEST_F(TeslaDBCParts, version)
 {
-    auto dbc = R"(VERSION "")";
-    EXPECT_TRUE(parser.parse(dbc));
+  auto dbc = R"(VERSION ""
+)";
+  EXPECT_TRUE(parser.parse(dbc));
 }
 
 TEST_F(TeslaDBCParts, ns)
@@ -72,6 +73,7 @@ NS_ :
 
 )";
     EXPECT_TRUE(parser.parse(dbc));
+    EXPECT_EQ(parser.getDb().symbols.size(), 28);
 }
 
 TEST_F(TeslaDBCParts, bs)
@@ -115,7 +117,7 @@ BS_:
 
 TEST_F(TeslaDBCParts, bu)
 {
-    auto dbc = R"(VERSION ""
+  auto dbc = R"(VERSION ""
 NS_ :
 	NS_DESC_
 	CM_
@@ -157,8 +159,9 @@ BU_:
     ESP
     SBW
     STW
+
 )";
-    EXPECT_TRUE(parser.parse(dbc));
+  EXPECT_TRUE(parser.parse(dbc));
 }
 
 TEST_F(TeslaDBCParts, val_tables)
@@ -229,7 +232,7 @@ VAL_TABLE_ DI_velocityEstimatorState 4 "VE_STATE_BACKUP_MOTOR" 3 "VE_STATE_BACKU
 
 TEST_F(TeslaDBCParts, messages)
 {
-    auto dbc = R"(VERSION ""
+  auto dbc = R"(VERSION ""
 
 
 NS_ :
@@ -309,6 +312,16 @@ BO_ 257 GTW_epasControl: 3 NEO
  SG_ GTW_epasTuneRequest : 5|3@1+ (1,0) [8|-1] "" NEO
 BO_ 57 XXX_1: 3 XXX
 
+BO_TX_BU_ 228 : NEO,ADAS;
+BO_TX_BU_ 506 : NEO,ADAS;
+BO_TX_BU_ 780 : NEO,ADAS;
+BO_TX_BU_ 829 : NEO,ADAS;
+
+CM_ SG_ 419 GEAR "10 = reverse, 11 = transition";
+CM_ SG_ 490 LONG_ACCEL "wheel speed derivative, noisy and zero snapping";
+
+VAL_ 69 WprSw6Posn 7 "SNA" 6 "STAGE2" 5 "STAGE1" 4 "INTERVAL4" 3 "INTERVAL3" 2 "INTERVAL2" 1 "INTERVAL1" 0 "OFF" ;VAL_ 257 GTW_epasControlType 0 "WITHOUT" 1 "WITH_ANGLE" 3 "WITH_BOTH" 2 "WITH_TORQUE" ;
+
 )";
-    EXPECT_TRUE(parser.parse(dbc));
+  EXPECT_TRUE(parser.parse(dbc));
 }

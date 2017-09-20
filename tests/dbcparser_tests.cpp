@@ -30,7 +30,6 @@ std::shared_ptr<spdlog::logger> kDefaultLogger =
     return logger;
 }();
 
-
 struct DBCParserTests : public ::testing::Test {
     CANdb::DBCParser parser;
 };
@@ -61,9 +60,9 @@ TEST_F(DBCParserTests, empty_data) {
 }
 
 TEST_F(DBCParserTests, one_liner) {
-    EXPECT_TRUE(parser.parse("VERSION \"\""));
-    EXPECT_TRUE(parser.getDb().messages.empty());
-    EXPECT_EQ(parser.getDb().version, "");
+  EXPECT_TRUE(parser.parse("VERSION \"\"\n"));
+  EXPECT_TRUE(parser.getDb().messages.empty());
+  EXPECT_EQ(parser.getDb().version, "");
 }
 
 TEST_F(DBCParserTests, correct_version_number) {
@@ -71,7 +70,6 @@ TEST_F(DBCParserTests, correct_version_number) {
     EXPECT_TRUE(parser.getDb().messages.empty());
     EXPECT_EQ(parser.getDb().version, "123 aa");
 }
-
 
 TEST_P(SymbolsTest, one_symbol) {
     auto params = GetParam();
@@ -85,6 +83,7 @@ NS_ :
         dbc += param;
         dbc += "\n";
     }
+    dbc += "\n";
 
     ASSERT_TRUE(parser.parse(dbc));
     EXPECT_EQ(parser.getDb().symbols, params);
@@ -102,6 +101,7 @@ BU_ :)";
     for (const auto& ecu : params) {
         dbc += "  " + ecu;
     }
+    dbc += "\n";
     dbc += "\n";
     ASSERT_TRUE(parser.parse(dbc));
     EXPECT_EQ(parser.getDb().ecus, params);
@@ -121,6 +121,7 @@ BU_ :)";
     for (const auto& ecu : params) {
         dbc += std::string{"\n"} + std::string{"  "} + ecu;
     }
+    dbc += "\n";
     dbc += "\n";
     ASSERT_TRUE(parser.parse(dbc));
     EXPECT_EQ(parser.getDb().ecus, params);
@@ -144,14 +145,16 @@ BU_ :
         dbc += std::string{"VAL_TABLE_ "} + value;
         dbc += "\n";
     }
+    dbc += "\n";
     ASSERT_TRUE(parser.parse(dbc));
 
     EXPECT_EQ(parser.getDb().val_tables.size(), values.size());
 }
 
 TEST_F(MessageTests, messages) {
-    std::string dbc =
-        R"(VERSION ""
+  std::string dbc =
+      R"(VERSION ""
+
 NS_ :
   NS_DESC
   NS_DESC2
@@ -162,12 +165,12 @@ BU_ :
   GTW
 
 )";
-    // std::vector<std::string> values { test_data::bo1, test_data::bo2 };
-    std::vector<std::string> values{test_data::bo1, test_data::bo2};
-    for (const auto& value : values) {
-        dbc += value;
-        dbc += "\n";
-        dbc += "\n";
+  // std::vector<std::string> values { test_data::bo1, test_data::bo2 };
+  std::vector<std::string> values{test_data::bo1, test_data::bo2};
+  for (const auto &value : values) {
+    dbc += value;
+    dbc += "\n";
+    dbc += "\n";
     }
     ASSERT_TRUE(parser.parse(dbc));
 
