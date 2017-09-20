@@ -14,8 +14,8 @@
 extern const char _resource_dbc_grammar_peg[];
 extern const size_t _resource_dbc_grammar_peg_len;
 
-template <typename T>
-auto take_first(T& container) -> typename T::value_type {
+template <typename T> auto take_first(T& container) -> typename T::value_type
+{
     if (container.empty()) {
         throw std::runtime_error("container is empty");
     }
@@ -24,8 +24,8 @@ auto take_first(T& container) -> typename T::value_type {
 
     return v;
 }
-template <typename T>
-auto take_back(T& container) -> typename T::value_type {
+template <typename T> auto take_back(T& container) -> typename T::value_type
+{
     if (container.empty()) {
         throw std::runtime_error("empty contaienr");
     }
@@ -35,18 +35,19 @@ auto take_back(T& container) -> typename T::value_type {
     return v;
 }
 
-template <typename T>
-auto to_vector(const T& container) -> std::vector<typename T::value_type> {
+template <typename T> auto to_vector(const T& container) -> std::vector<typename T::value_type>
+{
     std::vector<typename T::value_type> ret;
-    std::transform(std::begin(container), std::end(container),
-                   std::back_inserter(ret), [](const auto& v) { return v; });
+    std::transform(
+        std::begin(container), std::end(container), std::back_inserter(ret), [](const auto& v) { return v; });
     return ret;
 }
 
 using namespace CANdb;
 using strings = std::vector<std::string>;
 
-std::string withLines(const std::string& dbcFile) {
+std::string withLines(const std::string& dbcFile)
+{
     strings split;
 
     auto withDots = dbcFile;
@@ -55,10 +56,9 @@ std::string withLines(const std::string& dbcFile) {
     boost::split(split, withDots, boost::is_any_of("\n"));
     std::string buff;
 
-    int counter{1};
+    int counter{ 1 };
     for (const auto& line : split) {
-        buff += std::to_string(counter++) + std::string{": "} + line +
-                std::string{"\n"};
+        buff += std::to_string(counter++) + std::string{ ": " } + line + std::string{ "\n" };
     }
 
     return buff;
@@ -111,10 +111,10 @@ bool DBCParser::parse(const std::string& data) noexcept {
         phrases.push_back(s);
     };
 
-    parser["ns"] = [this, &idents](const peg::SemanticValues &sv) {
-      can_database.symbols = to_vector(idents);
-      cdb_debug("Found symbols {}", sv.token());
-      idents.clear();
+    parser["ns"] = [this, &idents](const peg::SemanticValues& sv) {
+        can_database.symbols = to_vector(idents);
+        cdb_debug("Found symbols {}", sv.token());
+        idents.clear();
     };
 
     parser["TOKEN"] = [&idents](const peg::SemanticValues& sv) {
@@ -124,25 +124,23 @@ bool DBCParser::parse(const std::string& data) noexcept {
         idents.push_back(s);
     };
 
-    parser["bs"] = [](const peg::SemanticValues &sv) {
-      cdb_debug("Found BS {}", sv.token());
+    parser["bs"] = [](const peg::SemanticValues& sv) { cdb_debug("Found BS {}", sv.token()); };
+
+    parser["sign"] = [&signs](const peg::SemanticValues& sv) {
+        cdb_trace("Found sign {}", sv.token());
+        signs.push_back(sv.token());
     };
 
-    parser["sign"] = [&signs](const peg::SemanticValues &sv) {
-      cdb_trace("Found sign {}", sv.token());
-      signs.push_back(sv.token());
+    parser["bu"] = [&idents, this](const peg::SemanticValues& sv) {
+        can_database.ecus = to_vector(idents);
+        cdb_debug("Found ecus [bu] {}", sv.token());
+        idents.clear();
     };
 
-    parser["bu"] = [&idents, this](const peg::SemanticValues &sv) {
-      can_database.ecus = to_vector(idents);
-      cdb_debug("Found ecus [bu] {}", sv.token());
-      idents.clear();
-    };
-
-    parser["bu_sl"] = [&idents, this](const peg::SemanticValues &sv) {
-      can_database.ecus = to_vector(idents);
-      cdb_debug("Found ecus [bu] {}", sv.token());
-      idents.clear();
+    parser["bu_sl"] = [&idents, this](const peg::SemanticValues& sv) {
+        can_database.ecus = to_vector(idents);
+        cdb_debug("Found ecus [bu] {}", sv.token());
+        idents.clear();
     };
 
     parser["number"] = [&signs, &numbers, this](const peg::SemanticValues& sv) {
@@ -151,32 +149,27 @@ bool DBCParser::parse(const std::string& data) noexcept {
         numbers.push_back(number);
     };
 
-    parser["number_phrase_pair"] = [&phrasesPairs, &numbers, &phrases,
-                                    this](const peg::SemanticValues &sv) {
-      cdb_trace("number phrase pair");
-      phrasesPairs.push_back(std::make_pair(numbers.at(0), phrases.at(0)));
+    parser["number_phrase_pair"] = [&phrasesPairs, &numbers, &phrases, this](const peg::SemanticValues& sv) {
+        cdb_trace("number phrase pair");
+        phrasesPairs.push_back(std::make_pair(numbers.at(0), phrases.at(0)));
     };
 
     parser["val_entry"] = [this, phrasesPairs](const peg::SemanticValues&) {
         std::vector<CANdb_t::ValTable::ValTableEntry> tab;
-        std::transform(
-            phrasesPairs.begin(), phrasesPairs.end(), std::back_inserter(tab),
-            [](const auto& p) {
-                return CANdb_t::ValTable::ValTableEntry{p.first, p.second};
-            });
-        can_database.val_tables.push_back(CANdb_t::ValTable{"", tab});
+        std::transform(phrasesPairs.begin(), phrasesPairs.end(), std::back_inserter(tab), [](const auto& p) {
+            return CANdb_t::ValTable::ValTableEntry{ p.first, p.second };
+        });
+        can_database.val_tables.push_back(CANdb_t::ValTable{ "", tab });
     };
 
     std::vector<CANsignal> signals;
-    parser["message"] = [this, &numbers, &signals,
-                         &idents](const peg::SemanticValues& sv) {
-        cdb_debug("Found a message {} signals = {}", idents.size(),
-                  signals.size());
+    parser["message"] = [this, &numbers, &signals, &idents](const peg::SemanticValues& sv) {
+        cdb_debug("Found a message {} signals = {}", idents.size(), signals.size());
         if (numbers.size() < 2 || idents.size() < 2) {
             return;
         }
-        CANmessage msg{static_cast<std::uint32_t>(numbers.at(0)), idents.at(0),
-                       static_cast<std::uint32_t>(numbers.at(1)), idents.at(1)};
+        CANmessage msg{ static_cast<std::uint32_t>(numbers.at(0)), idents.at(0),
+            static_cast<std::uint32_t>(numbers.at(1)), idents.at(1) };
         cdb_debug("Found a message with id = {}", msg.id);
         can_database.messages[msg] = signals;
         signals.clear();
@@ -184,33 +177,29 @@ bool DBCParser::parse(const std::string& data) noexcept {
         idents.clear();
     };
 
-    parser["signal"] = [&idents, &numbers, &phrases, &signals,
-                        &signs](const peg::SemanticValues &sv) {
-      cdb_debug("Found signal {}", sv.token());
+    parser["signal"] = [&idents, &numbers, &phrases, &signals, &signs](const peg::SemanticValues& sv) {
+        cdb_debug("Found signal {}", sv.token());
 
-      auto receiver = take_back(idents);
-      auto unit = take_back(phrases);
+        auto receiver = take_back(idents);
+        auto unit = take_back(phrases);
 
-      auto max = take_back(numbers);
-      auto min = take_back(numbers);
-      auto offset = take_back(numbers);
-      auto factor = take_back(numbers);
+        auto max = take_back(numbers);
+        auto min = take_back(numbers);
+        auto offset = take_back(numbers);
+        auto factor = take_back(numbers);
 
-      auto value_type = take_back(signs);
+        auto value_type = take_back(signs);
 
-      auto byteOrder = take_back(numbers);
-      auto signalSize = take_back(numbers);
-      auto startBit = take_back(numbers);
+        auto byteOrder = take_back(numbers);
+        auto signalSize = take_back(numbers);
+        auto startBit = take_back(numbers);
 
-      auto signal_name = take_back(idents);
+        auto signal_name = take_back(idents);
 
-      signals.push_back(CANsignal{
-          signal_name, static_cast<std::uint8_t>(startBit),
-          static_cast<std::uint8_t>(signalSize),
-          static_cast<std::uint8_t>(byteOrder), value_type,
-          static_cast<std::uint8_t>(factor), static_cast<std::uint8_t>(offset),
-          static_cast<std::int8_t>(min), static_cast<std::int8_t>(max), unit,
-          receiver});
+        signals.push_back(CANsignal{ signal_name, static_cast<std::uint8_t>(startBit),
+            static_cast<std::uint8_t>(signalSize), static_cast<std::uint8_t>(byteOrder), value_type,
+            static_cast<std::uint8_t>(factor), static_cast<std::uint8_t>(offset), static_cast<std::int8_t>(min),
+            static_cast<std::int8_t>(max), unit, receiver });
     };
 
     return parser.parse(noTabsData.c_str());

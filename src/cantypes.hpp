@@ -22,9 +22,7 @@ struct CANsignal {
     std::string receiver;
     CANsignalType type;
 
-    bool operator==(const CANsignal& rhs) const {
-        return signal_name == rhs.signal_name;
-    }
+    bool operator==(const CANsignal& rhs) const { return signal_name == rhs.signal_name; }
 };
 
 struct CANmessage {
@@ -35,13 +33,10 @@ struct CANmessage {
 };
 
 namespace std {
-template <>
-struct less<CANmessage> {
-    bool operator()(const CANmessage& lhs, const CANmessage& rhs) const {
-        return lhs.id < rhs.id;
-    }
+template <> struct less<CANmessage> {
+    bool operator()(const CANmessage& lhs, const CANmessage& rhs) const { return lhs.id < rhs.id; }
 };
-}  // namespace std
+} // namespace std
 
 struct CANdb_t {
     struct ValTable {

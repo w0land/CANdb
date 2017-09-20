@@ -8,33 +8,30 @@
 extern const char _resource_tesla_can_dbc[];
 extern const size_t _resource_tesla_can_dbc_len;
 
-std::string loadDBCFile(const std::string& filename) {
-    const std::string path = std::string{OPENDBC_DIR} + filename;
+std::string loadDBCFile(const std::string& filename)
+{
+    const std::string path = std::string{ OPENDBC_DIR } + filename;
 
-    std::fstream file{path.c_str()};
+    std::fstream file{ path.c_str() };
 
     std::string buff;
-    std::copy(std::istreambuf_iterator<char>(file),
-              std::istreambuf_iterator<char>(), std::back_inserter(buff));
+    std::copy(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>(), std::back_inserter(buff));
 
     file.close();
     return buff;
 }
 
-std::shared_ptr<spdlog::logger> kDefaultLogger =
-    []() -> std::shared_ptr<spdlog::logger> {
+std::shared_ptr<spdlog::logger> kDefaultLogger = []() -> std::shared_ptr<spdlog::logger> {
     auto z = std::getenv("CDB_LEVEL");
     auto logger = spdlog::stdout_color_mt("cdb");
 
     if (z == nullptr) {
         logger->set_level(spdlog::level::err);
     } else {
-        const std::string ll{z};
+        const std::string ll{ z };
 
-        auto it = std::find_if(
-            std::begin(spdlog::level::level_names),
-            std::end(spdlog::level::level_names),
-            [&ll](const char* name) { return std::string{name} == ll; });
+        auto it = std::find_if(std::begin(spdlog::level::level_names), std::end(spdlog::level::level_names),
+            [&ll](const char* name) { return std::string{ name } == ll; });
 
         if (it != std::end(spdlog::level::level_names)) {
             int i = std::distance(std::begin(spdlog::level::level_names), it);
@@ -49,15 +46,14 @@ struct OpenDBCTest : public ::testing::TestWithParam<std::string> {
     CANdb::DBCParser parser;
 };
 
-TEST_P(OpenDBCTest, parse_dbc_file) {
+TEST_P(OpenDBCTest, parse_dbc_file)
+{
     auto dbc_file = GetParam();
     auto file = loadDBCFile(dbc_file);
     ASSERT_TRUE(parser.parse(file));
 }
 
-INSTANTIATE_TEST_CASE_P(TeslaDBC, OpenDBCTest,
-                        ::testing::Values("tesla_can.dbc",
-                                          "acura_ilx_2016_can.dbc"));
+INSTANTIATE_TEST_CASE_P(TeslaDBC, OpenDBCTest, ::testing::Values("tesla_can.dbc", "acura_ilx_2016_can.dbc"));
 //"acura_ilx_2016_can.dbc", "acura_ilx_2016_nidec.dbc",
 //"gm_global_a_chassis.dbc", "gm_global_a_lowspeed.dbc",
 //"gm_global_a_object.dbc", "gm_global_a_powertrain.dbc",

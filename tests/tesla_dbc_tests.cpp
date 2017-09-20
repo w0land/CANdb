@@ -1,22 +1,19 @@
 #include <gtest/gtest.h>
 
-#include "log.hpp"
 #include "dbcparser.h"
+#include "log.hpp"
 
-std::shared_ptr<spdlog::logger> kDefaultLogger =
-    []() -> std::shared_ptr<spdlog::logger> {
+std::shared_ptr<spdlog::logger> kDefaultLogger = []() -> std::shared_ptr<spdlog::logger> {
     auto z = std::getenv("CDB_LEVEL");
     auto logger = spdlog::stdout_color_mt("cdb");
 
     if (z == nullptr) {
         logger->set_level(spdlog::level::err);
     } else {
-        const std::string ll{z};
+        const std::string ll{ z };
 
-        auto it = std::find_if(
-            std::begin(spdlog::level::level_names),
-            std::end(spdlog::level::level_names),
-            [&ll](const char* name) { return std::string{name} == ll; });
+        auto it = std::find_if(std::begin(spdlog::level::level_names), std::end(spdlog::level::level_names),
+            [&ll](const char* name) { return std::string{ name } == ll; });
 
         if (it != std::end(spdlog::level::level_names)) {
             int i = std::distance(std::begin(spdlog::level::level_names), it);
@@ -27,15 +24,15 @@ std::shared_ptr<spdlog::logger> kDefaultLogger =
     return logger;
 }();
 
-struct TeslaDBCParts  : public ::testing::Test {
+struct TeslaDBCParts : public ::testing::Test {
     CANdb::DBCParser parser;
 };
 
 TEST_F(TeslaDBCParts, version)
 {
-  auto dbc = R"(VERSION ""
+    auto dbc = R"(VERSION ""
 )";
-  EXPECT_TRUE(parser.parse(dbc));
+    EXPECT_TRUE(parser.parse(dbc));
 }
 
 TEST_F(TeslaDBCParts, ns)
@@ -117,7 +114,7 @@ BS_:
 
 TEST_F(TeslaDBCParts, bu)
 {
-  auto dbc = R"(VERSION ""
+    auto dbc = R"(VERSION ""
 NS_ :
 	NS_DESC_
 	CM_
@@ -161,7 +158,7 @@ BU_:
     STW
 
 )";
-  EXPECT_TRUE(parser.parse(dbc));
+    EXPECT_TRUE(parser.parse(dbc));
 }
 
 TEST_F(TeslaDBCParts, val_tables)
@@ -232,7 +229,7 @@ VAL_TABLE_ DI_velocityEstimatorState 4 "VE_STATE_BACKUP_MOTOR" 3 "VE_STATE_BACKU
 
 TEST_F(TeslaDBCParts, messages)
 {
-  auto dbc = R"(VERSION ""
+    auto dbc = R"(VERSION ""
 
 
 NS_ :
@@ -323,5 +320,5 @@ CM_ SG_ 490 LONG_ACCEL "wheel speed derivative, noisy and zero snapping";
 VAL_ 69 WprSw6Posn 7 "SNA" 6 "STAGE2" 5 "STAGE1" 4 "INTERVAL4" 3 "INTERVAL3" 2 "INTERVAL2" 1 "INTERVAL1" 0 "OFF" ;VAL_ 257 GTW_epasControlType 0 "WITHOUT" 1 "WITH_ANGLE" 3 "WITH_BOTH" 2 "WITH_TORQUE" ;
 
 )";
-  EXPECT_TRUE(parser.parse(dbc));
+    EXPECT_TRUE(parser.parse(dbc));
 }
