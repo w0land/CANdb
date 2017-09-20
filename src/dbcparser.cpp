@@ -3,8 +3,8 @@
 #include "lambda_visitor.hpp"
 #include "log.hpp"
 
-#include <peglib.h>
 #include <fstream>
+#include <peglib.h>
 
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/erase.hpp>
@@ -64,28 +64,33 @@ std::string withLines(const std::string& dbcFile)
     return buff;
 }
 
+std::string dos2unix(const std::string& data)
+{
+    std::string noWindowsShit;
+    boost::replace_all_copy(std::back_inserter(noWindowsShit), data, "\r\n", "\n");
+
+    return noWindowsShit;
+}
+
 DBCParser::DBCParser() {}
 
-bool DBCParser::parse(const std::string& data) noexcept {
-    Resource dbc{_resource_dbc_grammar_peg, _resource_dbc_grammar_peg_len};
+bool DBCParser::parse(const std::string& data) noexcept
+{
+    Resource dbc{ _resource_dbc_grammar_peg, _resource_dbc_grammar_peg_len };
 
-    auto noTabsData = data;
+    auto noTabsData = dos2unix(data);
 
     peg::parser parser;
 
-    parser.log = [](size_t l, size_t k, const std::string& s) {
-        cdb_error("Parser log {}:{} {}", l, k, s);
-    };
+    parser.log = [](size_t l, size_t k, const std::string& s) { cdb_error("Parser log {}:{} {}", l, k, s); };
 
     if (!parser.load_grammar(dbc.data(), dbc.size())) {
         cdb_error("Unable to parse grammar");
         return false;
     }
 
-    parser.enable_trace(
-        [](const char* a, const char* k, long unsigned int,
-           const peg::SemanticValues&, const peg::Context&,
-           const peg::any&) { cdb_trace(" Parsing {} \"{}\"", a, k); });
+    parser.enable_trace([](const char* a, const char* k, long unsigned int, const peg::SemanticValues&,
+                            const peg::Context&, const peg::any&) { cdb_trace(" Parsing {} \"{}\"", a, k); });
 
     cdb_debug("DBC file  = \n{}", withLines(noTabsData));
 
