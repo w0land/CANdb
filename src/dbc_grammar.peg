@@ -13,7 +13,6 @@ cm                      <- < 'CM_' s* (TOKEN / number) s* number* s* TOKEN* s* p
 ba_def                  <- < 'BA_DEF_' s* phrase s* TOKEN s* number* s* number* ';' > NewLine
 ba_def_def              <- < 'BA_DEF_DEF_' s* phrase s* (phrase / number ) ';' > NewLine
 ba                      <- < 'BA_' s* phrase s* (phrase / number ) ';' > NewLine
-
 vals                    <- < 'VAL_' s* number s* TOKEN s* number s* phrase s* (number s* phrase s*)* s* ';' > NewLine*
 
 

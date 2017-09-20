@@ -53,53 +53,6 @@ TEST_P(OpenDBCTest, parse_dbc_file)
     ASSERT_TRUE(parser.parse(file));
 }
 
-TEST_F(OpenDBCTest, quirks_ns)
-{
-    auto dbc_file = R"(VERSION ""
-
-
-NS_ : 
-	NS_DESC_
-	CM_
-	BA_DEF_
-	BA_
-	VAL_
-	CAT_DEF_
-	CAT_
-	FILTER
-	BA_DEF_DEF_
-	EV_DATA_
-	ENVVAR_DATA_
-	SGTYPE_
-	SGTYPE_VAL_
-	BA_DEF_SGTYPE_
-	BA_SGTYPE_
-	SIG_TYPE_REF_
-	VAL_TABLE_
-	SIG_GROUP_
-	SIG_VALTYPE_
-	SIGTYPE_VALTYPE_
-	BO_TX_BU_
-	BA_DEF_REL_
-	BA_REL_
-	BA_DEF_DEF_REL_
-	BU_SG_REL_
-	BU_EV_REL_
-	BU_BO_REL_
-	SG_MUL_VAL_
-
-BS_:
-
-BO_ 271360000 GasPedalRegenCruise: 8 GMLAN
- SG_ CruiseControlActive : 56|1@0+ (1,0) [0|0] ""  GMLAN
- SG_ MaxRegen : 12|1@0+ (1,0) [0|1] ""  GMLAN,NEO
- SG_ GasPedal : 47|8@0+ (1,0) [0|254] ""  GMLAN,NEO
- SG_ GearShifter2NotUsed : 55|8@0+ (1,0) [0|255] ""  GMLAN,NEO
-
-)";
-    ASSERT_TRUE(parser.parse(dbc_file));
-}
-
 INSTANTIATE_TEST_CASE_P(TeslaDBC, OpenDBCTest,
     ::testing::Values("tesla_can.dbc", "acura_ilx_2016_can.dbc", "acura_ilx_2016_can.dbc", "acura_ilx_2016_nidec.dbc",
         "gm_global_a_chassis.dbc", "gm_global_a_lowspeed.dbc", "gm_global_a_object.dbc", "gm_global_a_powertrain.dbc",
